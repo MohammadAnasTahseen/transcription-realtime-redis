@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  rabbitmq:
+    build:
+      context: .  # Current directory with the Dockerfile
+    image: practice-custom-rabbitmq:latest  # Custom image name
+    container_name: practice-rabbitmq-container
+    ports:
+      - "5672:5672"
+      - "15672:15672"
