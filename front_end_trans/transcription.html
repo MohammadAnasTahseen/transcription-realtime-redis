@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Transcription App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+  <div class="max-w-md mx-auto bg-white rounded-2xl shadow-md p-6">
+    <h2 class="text-2xl font-bold mb-4">Audio Transcription</h2>
+
+    <input type="file" id="audioFile" class="block w-full mb-4" accept="audio/*" />
+
+    <button
+      id="transcribeBtn"
+      class="bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded w-full"
+    >
+      Transcribe
+    </button>
+
+    <div id="transcriptionResult" class="mt-6 text-gray-700 whitespace-pre-wrap"></div>
+  </div>
+
+  <script>
+let pollInterval = null;
+
+document.getElementById("transcribeBtn").addEventListener("click", async () => {
+  const fileInput = document.getElementById("audioFile");
+  const file = fileInput.files[0];
+  if (!file) return alert("Please upload an audio file first.");
+
+  const formData = new FormData();
+  formData.append("audio", file);
+
+  const resultDiv = document.getElementById("transcriptionResult");
+  resultDiv.innerHTML = "Uploading & transcribing...\n";
+
+  try {
+    const res = await fetch("http://localhost:8000/transcription-api/", {
+      method: "POST",
+      body: formData,
+    });
+
+    const data = await res.json();
+    if (res.ok) {
+      const taskId = data.task_id;
+      resultDiv.innerHTML += `Task ID: ${taskId}\n`;
+
+      // Start polling every 2 seconds
+pollInterval = setInterval(async () => {
+  const pollRes = await fetch(`http://localhost:8000/transcription-result/${taskId}/`);
+  const pollData = await pollRes.json();
+   console.log("Polling result:", pollData);
+
+  resultDiv.innerHTML = `Task ID: ${taskId}\n\n${pollData.transcription}`;
+
+  if (pollData.done) {
+    resultDiv.innerHTML += `\n✅ Transcription complete!`;
+    clearInterval(pollInterval);
+  }
+}, 2000);
+    } else {
+      resultDiv.innerHTML += `\nError: ${data.error || "Upload failed."}`;
+    }
+  } catch (error) {
+    resultDiv.innerHTML += `\nError: ${error.message}`;
+  }
+});
+</script>
+
+</body>
+</html>
